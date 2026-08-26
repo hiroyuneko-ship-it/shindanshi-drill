@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1b3a5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="診断士ドリル">
+<title>診断士ドリル</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ========== ホーム ========== -->
+<section id="view-home" class="view active">
+  <header class="app-header">
+    <div class="app-title">
+      <h1>診断士ドリル</h1>
+      <p class="sub">中小企業診断士 1次・2次対策</p>
+    </div>
+    <button class="icon-btn" id="btn-settings" aria-label="設定">⚙</button>
+  </header>
+
+  <div class="scroll">
+    <div class="today-card">
+      <div class="today-main">
+        <div class="today-num" id="due-count">0</div>
+        <div class="today-label">今日の復習</div>
+      </div>
+      <div class="today-side">
+        <div class="today-stat"><span id="streak-days">0</span><small>連続日数</small></div>
+        <div class="today-stat"><span id="today-solved">0</span><small>今日の解答</small></div>
+        <div class="today-stat"><span id="overall-rate">–</span><small>総合正答率</small></div>
+      </div>
+    </div>
+
+    <div class="quick-row">
+      <button class="quick-btn primary" id="btn-review">
+        <span class="q-ico">🔁</span>
+        <span class="q-txt">復習する<small id="review-sub">今日の分</small></span>
+      </button>
+      <button class="quick-btn" id="btn-weak">
+        <span class="q-ico">⚠️</span>
+        <span class="q-txt">苦手だけ<small id="weak-sub">0問</small></span>
+      </button>
+      <button class="quick-btn" id="btn-random">
+        <span class="q-ico">🎲</span>
+        <span class="q-txt">全科目ランダム<small>20問</small></span>
+      </button>
+    </div>
+
+    <h2 class="section-h">1次試験 <small>7科目</small></h2>
+    <div id="subject-list" class="subject-list"></div>
+
+    <h2 class="section-h">2次試験 <small>事例I〜IV</small></h2>
+    <div id="case-list" class="subject-list"></div>
+
+    <div class="home-foot">
+      <button class="text-btn" id="btn-stats">📊 学習記録を見る</button>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 出題設定シート ========== -->
+<div id="sheet-backdrop" class="backdrop"></div>
+<section id="sheet-start" class="sheet">
+  <div class="sheet-handle"></div>
+  <h2 id="sheet-title">科目名</h2>
+  <div id="sheet-topics" class="chip-wrap"></div>
+  <div class="field" id="field-type">
+    <label>出題形式</label>
+    <div class="seg" id="seg-type">
+      <button data-v="all" class="on">すべて</button>
+      <button data-v="ox">○×のみ</button>
+      <button data-v="mc">4択のみ</button>
+    </div>
+  </div>
+  <div class="field">
+    <label>出題数</label>
+    <div class="seg" id="seg-count">
+      <button data-v="10">10問</button>
+      <button data-v="20" class="on">20問</button>
+      <button data-v="40">40問</button>
+      <button data-v="0">全部</button>
+    </div>
+  </div>
+  <div class="field">
+    <label>出題順</label>
+    <div class="seg" id="seg-order">
+      <button data-v="smart" class="on">おまかせ</button>
+      <button data-v="random">ランダム</button>
+      <button data-v="seq">番号順</button>
+    </div>
+  </div>
+  <p class="hint">おまかせ＝未学習と苦手を優先して出題します。</p>
+  <div class="sheet-btns">
+    <button class="btn ghost" id="sheet-cancel">キャンセル</button>
+    <button class="btn solid" id="sheet-go">開始</button>
+  </div>
+  <button class="btn exam-btn" id="sheet-exam">⏱ 模試モード（本試験形式）</button>
+</section>
+
+<!-- ========== 出題画面 ========== -->
+<section id="view-quiz" class="view">
+  <header class="quiz-header">
+    <button class="icon-btn" id="btn-quit" aria-label="中断">✕</button>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div id="progress-fill"></div></div>
+      <div class="progress-txt"><span id="q-index">1</span> / <span id="q-total">20</span></div>
+    </div>
+    <div class="timer" id="quiz-timer"></div>
+  </header>
+
+  <div class="scroll quiz-scroll">
+    <div class="q-meta">
+      <span class="badge" id="q-subject">科目</span>
+      <span class="badge sub" id="q-topic">論点</span>
+      <span class="badge type" id="q-type">○×</span>
+    </div>
+    <p class="q-text" id="q-text"></p>
+    <div id="answer-area"></div>
+    <div id="explain" class="explain hidden">
+      <div class="explain-verdict" id="explain-verdict"></div>
+      <div class="explain-body" id="explain-body"></div>
+      <div class="explain-meta" id="explain-meta"></div>
+    </div>
+  </div>
+
+  <footer class="quiz-footer">
+    <button class="btn ghost small" id="btn-flag">☆ 見直し</button>
+    <button class="btn solid" id="btn-next">次へ</button>
+  </footer>
+</section>
+
+<!-- ========== 結果画面 ========== -->
+<section id="view-result" class="view">
+  <div class="scroll">
+    <div class="result-hero" id="result-hero">
+      <div class="result-score"><span id="res-correct">0</span><small>/<span id="res-total">0</span></small></div>
+      <div class="result-rate" id="res-rate">0%</div>
+      <div class="result-judge" id="res-judge"></div>
+    </div>
+    <div class="result-facts" id="result-facts"></div>
+    <h2 class="section-h">解答一覧</h2>
+    <div id="result-list" class="result-list"></div>
+    <div class="result-btns">
+      <button class="btn solid" id="btn-redo-wrong">間違えた問題をもう一度</button>
+      <button class="btn ghost" id="btn-result-home">ホームに戻る</button>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 学習記録 ========== -->
+<section id="view-stats" class="view">
+  <header class="app-header">
+    <button class="icon-btn" id="btn-stats-back" aria-label="戻る">←</button>
+    <div class="app-title"><h1>学習記録</h1></div>
+    <span class="header-spacer"></span>
+  </header>
+  <div class="scroll">
+    <div class="stat-grid" id="stat-grid"></div>
+    <h2 class="section-h">学習カレンダー <small>直近16週</small></h2>
+    <div class="heatmap" id="heatmap"></div>
+    <div class="heat-legend"><small>少</small><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><small>多</small></div>
+    <h2 class="section-h">科目別 到達度</h2>
+    <div id="subject-stats" class="subject-stats"></div>
+    <h2 class="section-h">今後の復習予定</h2>
+    <div id="forecast" class="forecast"></div>
+  </div>
+</section>
+
+<!-- ========== 設定 ========== -->
+<section id="view-settings" class="view">
+  <header class="app-header">
+    <button class="icon-btn" id="btn-settings-back" aria-label="戻る">←</button>
+    <div class="app-title"><h1>設定</h1></div>
+    <span class="header-spacer"></span>
+  </header>
+  <div class="scroll">
+    <div class="setting-card">
+      <label class="switch-row">
+        <span><b>正解したら自動で次へ</b><small>正解時は解説を1.2秒表示して自動で進む</small></span>
+        <input type="checkbox" id="opt-autonext">
+      </label>
+      <label class="switch-row">
+        <span><b>1日の復習上限</b><small>復習モードで一度に出す最大問題数</small></span>
+        <select id="opt-dailycap"><option>20</option><option selected>40</option><option>60</option><option>100</option><option value="9999">上限なし</option></select>
+      </label>
+      <label class="switch-row">
+        <span><b>4択の選択肢をシャッフル</b><small>選択肢の位置で覚えてしまうのを防ぐ</small></span>
+        <input type="checkbox" id="opt-shuffle" checked>
+      </label>
+    </div>
+    <h2 class="section-h">データ</h2>
+    <div class="setting-card">
+      <button class="row-btn" id="btn-export">📤 学習データを書き出す<small>JSONファイルとして保存</small></button>
+      <button class="row-btn" id="btn-import">📥 学習データを読み込む<small>別の端末のデータを復元</small></button>
+      <input type="file" id="import-file" accept="application/json" hidden>
+      <button class="row-btn danger" id="btn-reset">🗑 学習履歴をリセット<small>すべての成績・復習予定を消去</small></button>
+    </div>
+    <div class="about">
+      <p><b>診断士ドリル</b> <span id="app-version"></span></p>
+      <p id="bank-info"></p>
+      <p class="disclaimer">本アプリの問題は一般的な学習範囲に基づく自作問題です。中小企業経営・政策の統計数値や支援制度は年度改訂で変わるため、最新の白書・施策利用ガイドブックで確認してください。</p>
+    </div>
+  </div>
+</section>
+
+<div id="toast" class="toast"></div>
+
+<!-- 問題データ -->
+<script src="data/economics.js"></script>
+<script src="data/finance.js"></script>
+<script src="data/management.js"></script>
+<script src="data/operations.js"></script>
+<script src="data/law.js"></script>
+<script src="data/infosys.js"></script>
+<script src="data/policy.js"></script>
+<script src="data/case2.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

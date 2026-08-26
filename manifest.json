@@ -1,0 +1,15 @@
+{
+  "name": "診断士ドリル — 中小企業診断士 問題集",
+  "short_name": "診断士ドリル",
+  "description": "中小企業診断士 1次7科目・2次事例に対応した、間隔反復つきの問題集アプリ",
+  "lang": "ja",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6f9",
+  "theme_color": "#1b3a5c",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
