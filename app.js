@@ -1,7 +1,7 @@
 /* ===== 診断士ドリル app.js ===== */
 'use strict';
 
-const APP_VERSION = 'v1.0.0';
+const APP_VERSION = 'v1.1.0';
 const STORE_KEY = 'shindanshi-drill-v1';
 
 /* ---------- 日付ユーティリティ ---------- */
@@ -42,7 +42,15 @@ function save(){
 }
 
 /* ---------- 問題バンク ---------- */
-const BANK = (window.QUIZ_BANK || []).slice();
+// 同じ科目idのブロックは1科目にまとめる（本試験レベル問題は別ファイルで追加している）
+const BANK = [];
+(window.QUIZ_BANK || []).forEach(b=>{
+  const s = BANK.find(x => x.id === b.id);
+  if(s) s.items = s.items.concat(b.items);
+  else BANK.push(Object.assign({}, b, { items: b.items.slice() }));
+});
+const isExamLv = it => it.lv === 2;   // 本試験レベル（長文・選択肢別解説つき）
+const KANA = ['ア','イ','ウ','エ','オ'];
 const SUBJ = {};           // id -> subject
 const ITEM = {};           // itemId -> {item, subject}
 BANK.forEach(s=>{
@@ -218,9 +226,10 @@ function openSheet(s){
   });
 
   // 2次（暗記カード中心）は出題形式セグメントを隠す
-  const hasOX = s.items.some(i => i.type === 'ox');
-  const hasMC = s.items.some(i => i.type === 'mc');
-  $('#field-type').style.display = (hasOX && hasMC) ? '' : 'none';
+  const hasExam = s.items.some(isExamLv);
+  const hasBasic = s.items.some(i => !isExamLv(i) && i.type !== 'kw');
+  $('#field-type').style.display = (hasExam && hasBasic) ? '' : 'none';
+  $$('#seg-type button').forEach(b => b.classList.toggle('on', b.dataset.v === (hasExam ? 'exam' : 'all')));
   $('#sheet-exam').style.display = s.exam ? '' : 'none';
 
   $('#sheet-backdrop').classList.add('show');
@@ -267,8 +276,10 @@ function buildFromSheet(){
   let list = s.items.map(it => ({ it, s }));
   if(sheetTopics.size) list = list.filter(x => sheetTopics.has(x.it.topic));
   const tp = segValue('seg-type');
-  if(tp === 'ox') list = list.filter(x => x.it.type === 'ox');
-  if(tp === 'mc') list = list.filter(x => x.it.type === 'mc');
+  if($('#field-type').style.display !== 'none'){
+    if(tp === 'exam') list = list.filter(x => isExamLv(x.it));
+    if(tp === 'basic') list = list.filter(x => !isExamLv(x.it));
+  }
   if(!list.length){ toast('条件に合う問題がありません'); return null; }
 
   const order = segValue('seg-order');
@@ -337,7 +348,7 @@ function renderQuestion(){
   $('#q-subject').textContent = s.short;
   $('#q-subject').style.background = s.color;
   $('#q-topic').textContent = it.topic;
-  $('#q-type').textContent = it.type === 'ox' ? '○×' : it.type === 'mc' ? '4択' : '記述・暗記';
+  $('#q-type').textContent = isExamLv(it) ? '本試験レベル' : it.type === 'ox' ? '○×' : it.type === 'mc' ? '4択' : '記述・暗記';
 
   const qt = $('#q-text');
   qt.innerHTML = (it.lead ? '<span class="lead">'+esc(it.lead)+'</span>' : '') + esc(it.q);
@@ -372,12 +383,11 @@ function renderOX(area, it){
 function renderMC(area, it){
   const list = el('div','opt-list');
   let idx = it.choices.map((c,i)=>i);
-  if(S.opts.shuffle && Q.mode !== 'exam') idx = shuffle(idx);
-  else if(S.opts.shuffle) idx = shuffle(idx);
+  if(S.opts.shuffle) idx = shuffle(idx);
   Q.order = idx;
   idx.forEach((orig, pos)=>{
     const b = el('button','opt');
-    b.innerHTML = '<span class="n">'+(pos+1)+'</span><span>'+esc(it.choices[orig])+'</span>';
+    b.innerHTML = '<span class="n">'+(isExamLv(it) ? KANA[pos] : pos+1)+'</span><span>'+esc(it.choices[orig])+'</span>';
     b.dataset.orig = orig;
     b.addEventListener('click', ()=> answerAuto(orig === it.a, orig, list));
     list.appendChild(b);
@@ -476,10 +486,37 @@ function showExplain(it, ok){
   v.className = 'explain-verdict ' + (ok ? 'ok' : 'ng');
   let head = ok ? '正解' : '不正解';
   if(it.type === 'ox') head += '　答え：' + (it.a ? '○' : '×');
-  if(it.type === 'mc') head += '　答え：' + (it.choices[it.a].length > 24 ? it.choices[it.a].slice(0,24) + '…' : it.choices[it.a]);
+  if(isExamLv(it)) head += '　答え：' + KANA[Q.order.indexOf(it.a)];
+  else if(it.type === 'mc') head += '　答え：' + (it.choices[it.a].length > 24 ? it.choices[it.a].slice(0,24) + '…' : it.choices[it.a]);
   v.textContent = head;
-  $('#explain-body').textContent = it.exp || '';
+  fillExplain($('#explain-body'), it, Q.order, Q.answers[Q.i].picked);
   $('#explain-meta').textContent = nextDueText(S.prog[it.id]);
+}
+
+// 解説本体。選択肢別の解説（why）がある問題は、選択肢ごとに正誤と理由を並べる
+function fillExplain(host, it, order, picked){
+  host.textContent = '';
+  if(it.type === 'mc' && it.why){
+    const ul = el('div','why-list');
+    (order || it.choices.map((c,i)=>i)).forEach((orig, pos)=>{
+      const ok = orig === it.a;
+      const row = el('div','why-item ' + (ok ? 'ok' : 'ng') + (orig === picked ? ' picked' : ''));
+      row.appendChild(el('span','why-mark', (order ? KANA[pos] : '') + (ok ? '○' : '×')));
+      const body = el('div','why-body');
+      if(!order) body.appendChild(el('span','why-choice', it.choices[orig]));
+      if(orig === picked) body.appendChild(el('span','why-you','あなたの解答'));
+      body.appendChild(el('span','why-txt', it.why[orig]));
+      row.appendChild(body);
+      ul.appendChild(row);
+    });
+    host.appendChild(ul);
+    if(it.exp){
+      host.appendChild(el('div','exp-h','論点の整理'));
+      host.appendChild(el('div','exp-point', it.exp));
+    }
+  }else{
+    host.textContent = it.exp || '';
+  }
 }
 
 function next(delay){
@@ -553,11 +590,18 @@ function renderResultList(){
       '<span class="res-q">'+esc(short)+'<em>'+esc(x.s.short + '／' + it.topic)+'</em></span>';
     const detail = el('div','res-detail');
     detail.style.display = 'none';
-    let ansTxt = '';
-    if(it.type === 'ox') ansTxt = '答え：' + (it.a ? '○' : '×');
-    else if(it.type === 'mc') ansTxt = '答え：' + it.choices[it.a];
-    else ansTxt = it.a;
-    detail.textContent = ansTxt + (it.exp ? '\n\n' + it.exp : '');
+    if(it.type === 'mc' && it.why){
+      detail.appendChild(el('div','res-full', (it.lead ? it.lead + '\n\n' : '') + it.q));
+      const body = el('div');
+      fillExplain(body, it, null, a ? a.picked : null);
+      detail.appendChild(body);
+    }else{
+      let ansTxt = '';
+      if(it.type === 'ox') ansTxt = '答え：' + (it.a ? '○' : '×');
+      else if(it.type === 'mc') ansTxt = '答え：' + it.choices[it.a];
+      else ansTxt = it.a;
+      detail.textContent = ansTxt + (it.exp ? '\n\n' + it.exp : '');
+    }
     row.addEventListener('click', ()=>{
       detail.style.display = detail.style.display === 'none' ? '' : 'none';
     });
@@ -647,7 +691,9 @@ function bind(){
   $('#sheet-exam').addEventListener('click', ()=>{
     const s = sheetSubject;
     if(!s.exam) return;
-    const pool = s.items.map(it => ({ it, s }));
+    // 本試験レベルの問題があればそれだけで構成する
+    const lv2 = s.items.filter(isExamLv);
+    const pool = (lv2.length ? lv2 : s.items).map(it => ({ it, s }));
     const cnt = Math.min(s.exam.count, pool.length);
     const list = shuffle(pool).slice(0, cnt);
     const min = Math.round(s.exam.minutes * cnt / s.exam.count);
@@ -667,8 +713,9 @@ function bind(){
     startSession(list, { title:'苦手克服' });
   });
   $('#btn-random').addEventListener('click', ()=>{
-    const pool = TIER1.flatMap(s => s.items.map(it => ({ it, s })));
-    startSession(shuffle(pool).slice(0,20), { title:'全科目ランダム' });
+    const all = TIER1.flatMap(s => s.items.map(it => ({ it, s })));
+    const lv2 = all.filter(x => isExamLv(x.it));
+    startSession(shuffle(lv2.length >= 20 ? lv2 : all).slice(0,20), { title:'全科目ランダム' });
   });
 
   $('#btn-next').addEventListener('click', ()=> next());
@@ -730,7 +777,7 @@ function bind(){
       if(e.key === 'x' || e.key === 'ArrowRight' || e.key === '2') $$('.ox-btn')[1].click();
     }else if(it.type === 'mc'){
       const n = parseInt(e.key,10);
-      if(n >= 1 && n <= 4){ const b = $$('.opt')[n-1]; if(b) b.click(); }
+      if(n >= 1 && n <= 5){ const b = $$('.opt')[n-1]; if(b) b.click(); }
     }
   });
 }
@@ -741,9 +788,10 @@ function renderSettings(){
   $('#opt-dailycap').value = String(S.opts.dailycap);
   $('#app-version').textContent = APP_VERSION;
   const ox = ALL_ITEMS.filter(x=>x.it.type==='ox').length;
-  const mc = ALL_ITEMS.filter(x=>x.it.type==='mc').length;
+  const mc = ALL_ITEMS.filter(x=>x.it.type==='mc' && !isExamLv(x.it)).length;
+  const ex = ALL_ITEMS.filter(x=>isExamLv(x.it)).length;
   const kw = ALL_ITEMS.filter(x=>x.it.type==='kw').length;
-  $('#bank-info').textContent = '収録 ' + ALL_ITEMS.length + '問（○× ' + ox + '／4択 ' + mc + '／2次 ' + kw + '）';
+  $('#bank-info').textContent = '収録 ' + ALL_ITEMS.length + '問（本試験レベル ' + ex + '／○× ' + ox + '／用語4択 ' + mc + '／2次 ' + kw + '）';
 }
 
 function exportData(){

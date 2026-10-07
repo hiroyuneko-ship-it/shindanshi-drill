@@ -1,12 +1,13 @@
 "use strict";
 
-const CACHE_NAME = "shindanshi-drill-v1";
+const CACHE_NAME = "shindanshi-drill-v2";
 const ASSETS = [
   "./", "./index.html", "./style.css", "./app.js", "./manifest.json",
   "./icon.svg", "./apple-touch-icon.png",
   "./data/economics.js", "./data/finance.js", "./data/management.js",
   "./data/operations.js", "./data/law.js", "./data/infosys.js",
-  "./data/policy.js", "./data/case2.js"
+  "./data/policy.js", "./data/case2.js",
+  "./data/exam-economics.js", "./data/exam-finance.js", "./data/exam-management.js", "./data/exam-operations.js", "./data/exam-law.js", "./data/exam-infosys.js", "./data/exam-policy.js"
 ];
 
 self.addEventListener("install", e => {

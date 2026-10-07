@@ -72,11 +72,11 @@
   <h2 id="sheet-title">科目名</h2>
   <div id="sheet-topics" class="chip-wrap"></div>
   <div class="field" id="field-type">
-    <label>出題形式</label>
+    <label>出題レベル</label>
     <div class="seg" id="seg-type">
-      <button data-v="all" class="on">すべて</button>
-      <button data-v="ox">○×のみ</button>
-      <button data-v="mc">4択のみ</button>
+      <button data-v="exam" class="on">本試験レベル</button>
+      <button data-v="basic">基礎確認</button>
+      <button data-v="all">すべて</button>
     </div>
   </div>
   <div class="field">
@@ -96,7 +96,7 @@
       <button data-v="seq">番号順</button>
     </div>
   </div>
-  <p class="hint">おまかせ＝未学習と苦手を優先して出題します。</p>
+  <p class="hint">本試験レベル＝長文の選択肢と選択肢別の解説つき。基礎確認＝○×と用語の4択。おまかせ＝未学習と苦手を優先して出題します。</p>
   <div class="sheet-btns">
     <button class="btn ghost" id="sheet-cancel">キャンセル</button>
     <button class="btn solid" id="sheet-go">開始</button>
@@ -191,7 +191,7 @@
         <select id="opt-dailycap"><option>20</option><option selected>40</option><option>60</option><option>100</option><option value="9999">上限なし</option></select>
       </label>
       <label class="switch-row">
-        <span><b>4択の選択肢をシャッフル</b><small>選択肢の位置で覚えてしまうのを防ぐ</small></span>
+        <span><b>選択肢をシャッフル</b><small>選択肢の位置で覚えてしまうのを防ぐ</small></span>
         <input type="checkbox" id="opt-shuffle" checked>
       </label>
     </div>
@@ -221,6 +221,13 @@
 <script src="data/infosys.js"></script>
 <script src="data/policy.js"></script>
 <script src="data/case2.js"></script>
+<script src="data/exam-economics.js"></script>
+<script src="data/exam-finance.js"></script>
+<script src="data/exam-management.js"></script>
+<script src="data/exam-operations.js"></script>
+<script src="data/exam-law.js"></script>
+<script src="data/exam-infosys.js"></script>
+<script src="data/exam-policy.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
