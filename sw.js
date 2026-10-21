@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "shindanshi-drill-v2";
+const CACHE_NAME = "shindanshi-drill-v3";
 const ASSETS = [
   "./", "./index.html", "./style.css", "./app.js", "./manifest.json",
   "./icon.svg", "./apple-touch-icon.png",

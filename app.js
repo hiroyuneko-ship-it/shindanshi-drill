@@ -1,7 +1,7 @@
 /* ===== 診断士ドリル app.js ===== */
 'use strict';
 
-const APP_VERSION = 'v1.1.0';
+const APP_VERSION = 'v1.2.0';
 const STORE_KEY = 'shindanshi-drill-v1';
 
 /* ---------- 日付ユーティリティ ---------- */
